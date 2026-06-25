@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Istio Probe</title>
+<style>
+  :root {
+    --bg:#f6f8fa; --card:#fff; --text:#1f2328; --muted:#656d76; --border:#d0d7de;
+    --accent:#3b5bdb; --accent-weak:#e7ecfd; --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --warn-bg:#fff8e6; --warn-border:#d4a72c; --warn-text:#7a5d00; --code:#f0f2f4;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{ --bg:#0d1117; --card:#161b22; --text:#e6edf3; --muted:#8b949e; --border:#30363d;
+      --accent:#5c7cfa; --accent-weak:#172033; --warn-bg:#2b2415; --warn-border:#9e7b1e; --warn-text:#e3b341; --code:#1c2128; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.5}
+  .wrap{max-width:1100px;margin:0 auto;padding:0 16px 48px}
+  header{background:linear-gradient(135deg,var(--accent),#2b3fa0);color:#fff;padding:22px 0;margin-bottom:20px}
+  header .wrap{padding-bottom:0;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  header h1{font-size:20px;margin:0;font-weight:600;letter-spacing:.2px}
+  header .sub{opacity:.85;font-size:13px;font-family:var(--mono)}
+  .pill{font-family:var(--mono);font-size:12px;background:rgba(255,255,255,.18);padding:4px 9px;border-radius:999px;white-space:nowrap}
+  .spacer{flex:1}
+  .banner{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;margin-bottom:18px;font-size:14px;border:1px solid}
+  .banner.ok{background:var(--accent-weak);border-color:var(--accent);color:var(--accent)}
+  .banner.warn{background:var(--warn-bg);border-color:var(--warn-border);color:var(--warn-text)}
+  .banner b{font-weight:600}
+  .toolbar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-bottom:18px}
+  .toolbar label{display:flex;align-items:center;gap:6px;cursor:pointer}
+  .toolbar select{font:inherit;background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:2px 6px}
+  .toolbar a{color:var(--accent);text-decoration:none}
+  .toolbar a:hover{text-decoration:underline}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;overflow:hidden}
+  .card.span{grid-column:1/-1}
+  .card h2{font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin:0 0 12px;font-weight:600;display:flex;align-items:center;gap:8px}
+  .hero{font-family:var(--mono);font-size:26px;font-weight:600;color:var(--accent);margin:2px 0 12px;word-break:break-all}
+  dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 14px}
+  dt{color:var(--muted);font-size:13px;white-space:nowrap}
+  dd{margin:0;font-family:var(--mono);font-size:13px;word-break:break-all;text-align:right}
+  .muted{color:var(--muted);font-size:13px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border);padding:6px 8px}
+  td{padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top;word-break:break-all}
+  td.k{font-family:var(--mono);white-space:nowrap;color:var(--muted)}
+  td.v{font-family:var(--mono)}
+  td.num{font-family:var(--mono);text-align:right;white-space:nowrap}
+  tr.mesh td.k{color:var(--accent);font-weight:600}
+  tr.mesh{background:var(--accent-weak)}
+  .big{font-family:var(--mono);font-weight:600;color:var(--accent)}
+  .tag{display:inline-block;white-space:nowrap;font-family:var(--mono);font-size:11px;padding:2px 9px;border-radius:999px;border:1px solid var(--border);color:var(--muted)}
+  .tag.strict{color:var(--accent);border-color:var(--accent);background:var(--accent-weak)}
+  footer{color:var(--muted);font-size:12px;margin-top:28px;text-align:center}
+  footer a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>Istio Probe</h1>
+    <span class="sub">v{{.Server.Version}}</span>
+    <span class="spacer"></span>
+    <span class="pill">uptime {{.Server.Uptime}}</span>
+    <span class="pill">{{.Server.Hostname}}</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  {{if .Demo}}
+  <div class="banner warn">▲&nbsp; <b>Demo mode</b> — Kubernetes &amp; Istio values are sample data (<code>PROBE_DEMO</code>), not live.</div>
+  {{end}}
+
+  {{if .Request.ViaMesh}}
+  <div class="banner ok">✓&nbsp; <b>Routed through the Istio mesh</b> — Envoy/B3 headers present{{if .Request.RequestID}} (x-request-id <code>{{.Request.RequestID}}</code>){{end}}.</div>
+  {{else}}
+  <div class="banner warn">●&nbsp; <b>Direct request</b> — no Envoy/forwarded headers seen. If you opened this through the ingress gateway, check the Gateway/VirtualService.</div>
+  {{end}}
+
+  <div class="toolbar">
+    <label><input type="checkbox" id="auto"> Auto-refresh</label>
+    <select id="interval">
+      <option value="5">5s</option>
+      <option value="10">10s</option>
+      <option value="30">30s</option>
+      <option value="60">60s</option>
+    </select>
+    <span id="countdown"></span>
+    <span class="spacer"></span>
+    <span>generated {{.Generated}}</span>
+    <a href="/api/info">raw JSON ↗</a>
+  </div>
+
+  <div class="grid">
+
+    <section class="card">
+      <h2>⛵ Istio control plane</h2>
+      {{if .Istio.Available}}
+      <div class="hero">{{if .Istio.Version}}{{.Istio.Version}}{{else}}unknown{{end}}</div>
+      <dl>
+        <dt>istiod</dt><dd>{{.Istio.Istiod}}</dd>
+        <dt>Ingress gateway</dt><dd>{{.Istio.IngressGW}}</dd>
+        <dt>Mesh mTLS</dt><dd>{{.Istio.MTLSMode}}</dd>
+        <dt>Injected namespaces</dt><dd>{{if ge .Istio.InjectedNS 0}}{{.Istio.InjectedNS}}{{else}}n/a{{end}}</dd>
+        <dt>Namespace</dt><dd>{{.Istio.Namespace}}</dd>
+      </dl>
+      {{else}}
+      <p class="muted">Istio not detected.<br>{{.Istio.Error}}</p>
+      {{end}}
+    </section>
+
+    <section class="card">
+      <h2>📊 Istio resources</h2>
+      {{if .Istio.Available}}
+      <table>
+        <thead><tr><th>Kind</th><th style="text-align:right">Count</th></tr></thead>
+        <tbody>
+        {{range .Istio.Resources}}
+          <tr>
+            <td class="v">{{.Kind}}</td>
+            <td class="num">{{if lt .Count 0}}<span class="muted">{{.Note}}</span>{{else}}<span class="big">{{.Count}}</span>{{end}}</td>
+          </tr>
+        {{end}}
+        </tbody>
+      </table>
+      {{else}}
+      <p class="muted">No Istio resources to count — Istio not detected.</p>
+      {{end}}
+    </section>
+
+    <section class="card">
+      <h2>☸ Kubernetes</h2>
+      {{if .Kube.Available}}
+      <div class="hero">{{.Kube.GitVersion}}</div>
+      <dl>
+        <dt>Major.Minor</dt><dd>{{.Kube.Major}}.{{.Kube.Minor}}</dd>
+        <dt>Platform</dt><dd>{{.Kube.Platform}}</dd>
+        <dt>Build date</dt><dd>{{.Kube.BuildDate}}</dd>
+        <dt>API server</dt><dd>{{.Kube.APIServer}}</dd>
+      </dl>
+      {{else}}
+      <p class="muted">Cluster version unavailable.<br>{{.Kube.Error}}</p>
+      {{end}}
+    </section>
+
+    <section class="card">
+      <h2>🌐 Request</h2>
+      <dl>
+        <dt>Method</dt><dd>{{.Request.Method}}</dd>
+        <dt>Scheme</dt><dd>{{.Request.Scheme}}</dd>
+        <dt>Host</dt><dd>{{.Request.Host}}</dd>
+        <dt>Path</dt><dd>{{.Request.URI}}</dd>
+        <dt>Client IP</dt><dd>{{.Request.ClientIP}}</dd>
+        <dt>Request ID</dt><dd>{{if .Request.RequestID}}{{.Request.RequestID}}{{else}}—{{end}}</dd>
+      </dl>
+    </section>
+
+    <section class="card">
+      <h2>📦 Pod</h2>
+      <dl>{{range .Pod}}<dt>{{.Name}}</dt><dd>{{.Value}}</dd>{{end}}</dl>
+    </section>
+
+    <section class="card">
+      <h2>🖥 Server</h2>
+      <dl>
+        <dt>Probe version</dt><dd>{{.Server.Version}}</dd>
+        <dt>Built</dt><dd>{{.Server.Build}}</dd>
+        <dt>Go runtime</dt><dd>{{.Server.Go}}</dd>
+        <dt>Uptime</dt><dd>{{.Server.Uptime}}</dd>
+      </dl>
+    </section>
+
+    {{if .Facts}}
+    <section class="card">
+      <h2>🏷 Facts</h2>
+      <dl>{{range .Facts}}<dt>{{.Name}}</dt><dd>{{.Value}}</dd>{{end}}</dl>
+    </section>
+    {{end}}
+
+    <section class="card span">
+      <h2>📨 Request headers <span class="tag" style="margin-left:auto">{{len .Request.Headers}}</span></h2>
+      <table>
+        <thead><tr><th style="width:30%">Header</th><th>Value</th></tr></thead>
+        <tbody>
+        {{range .Request.Headers}}
+          <tr class="{{if .Mesh}}mesh{{end}}"><td class="k">{{.Name}}</td><td class="v">{{.Value}}</td></tr>
+        {{end}}
+        </tbody>
+      </table>
+    </section>
+
+  </div>
+
+  <footer>
+    istio-probe · deploy behind the Istio ingress gateway to verify routing &amp; inventory after an upgrade ·
+    <a href="/api/info">/api/info</a> · <a href="/healthz">/healthz</a>
+  </footer>
+</div>
+
+<script>
+  (function () {
+    var auto = document.getElementById('auto');
+    var interval = document.getElementById('interval');
+    var cd = document.getElementById('countdown');
+    auto.checked = localStorage.getItem('probe.auto') === '1';
+    interval.value = localStorage.getItem('probe.interval') || '10';
+    var remaining = parseInt(interval.value, 10);
+    function render() { cd.textContent = auto.checked ? 'refresh in ' + remaining + 's' : ''; }
+    function reset() {
+      localStorage.setItem('probe.auto', auto.checked ? '1' : '0');
+      localStorage.setItem('probe.interval', interval.value);
+      remaining = parseInt(interval.value, 10);
+      render();
+    }
+    setInterval(function () {
+      if (!auto.checked) { render(); return; }
+      remaining--;
+      if (remaining <= 0) { location.reload(); return; }
+      render();
+    }, 1000);
+    auto.addEventListener('change', reset);
+    interval.addEventListener('change', reset);
+    render();
+  })();
+</script>
+</body>
+</html>

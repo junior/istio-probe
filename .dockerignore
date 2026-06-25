@@ -1,0 +1,8 @@
+.git
+.github
+docs
+k8s
+*.md
+LICENSE
+.dockerignore
+.gitignore

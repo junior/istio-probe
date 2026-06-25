@@ -1,0 +1,36 @@
+# Exposes the probe through the Istio ingress gateway — so hitting it proves the mesh
+# is routing (the page shows the Envoy/B3 headers the gateway injected). Change the host.
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: istio-probe
+  labels:
+    app: istio-probe
+spec:
+  selector:
+    istio: ingressgateway # Istio's default ingress gateway
+  servers:
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+        - "istio-probe.example.com"
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: istio-probe
+  labels:
+    app: istio-probe
+spec:
+  hosts:
+    - "istio-probe.example.com"
+  gateways:
+    - istio-probe
+  http:
+    - route:
+        - destination:
+            host: istio-probe # the Service
+            port:
+              number: 80

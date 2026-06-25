@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: istio-probe
+  labels:
+    app: istio-probe
+spec:
+  selector:
+    app: istio-probe
+  ports:
+    - name: http # Istio keys protocol off the port name
+      port: 80
+      targetPort: 8080
+      protocol: TCP
+  type: ClusterIP

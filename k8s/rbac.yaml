@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: istio-probe
+  labels:
+    app: istio-probe
+---
+# Read-only: the probe only ever GETs/LISTs to count config and read the control plane.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: istio-probe
+  labels:
+    app: istio-probe
+rules:
+  - apiGroups: ["networking.istio.io"]
+    resources:
+      ["virtualservices", "gateways", "destinationrules", "serviceentries",
+       "sidecars", "envoyfilters", "workloadentries", "workloadgroups"]
+    verbs: ["get", "list"]
+  - apiGroups: ["security.istio.io"]
+    resources: ["peerauthentications", "authorizationpolicies", "requestauthentications"]
+    verbs: ["get", "list"]
+  - apiGroups: ["telemetry.istio.io"]
+    resources: ["telemetries"]
+    verbs: ["get", "list"]
+  - apiGroups: ["extensions.istio.io"]
+    resources: ["wasmplugins"]
+    verbs: ["get", "list"]
+  # control plane (istiod / ingress gateway deployments) + injection-label detection
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: istio-probe
+  labels:
+    app: istio-probe
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: istio-probe
+subjects:
+  - kind: ServiceAccount
+    name: istio-probe
+    namespace: default # <-- change to the namespace you deploy into
