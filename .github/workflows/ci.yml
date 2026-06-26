@@ -20,7 +20,11 @@ jobs:
       - run: go build ./...
 
   image:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm] # native amd64 + arm64
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
       - run: docker build -t istio-probe-ci .
