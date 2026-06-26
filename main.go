@@ -52,6 +52,7 @@ type pageData struct {
 	Kube      kubeInfo    `json:"kubernetes"`
 	Istio     istioInfo   `json:"istio"`
 	Demo      bool        `json:"demo"`
+	Author    *authorInfo `json:"author,omitempty"`
 	Generated string      `json:"generated"`
 }
 
@@ -154,6 +155,9 @@ func collect(r *http.Request) pageData {
 	} else {
 		d.Kube = collectKube(ctx, k)
 		d.Istio = collectIstio(ctx, k)
+	}
+	if brandEnabled() {
+		d.Author = &authorInfo{Name: "Adao Oliveira Jr", URL: "https://adao.dev"}
 	}
 	if demoMode() {
 		applyDemo(&d)
@@ -488,7 +492,23 @@ func (k *k8s) meshMTLS(ctx context.Context, ns, secVersion string) string {
 	return pa.Spec.Mtls.Mode
 }
 
-// ---- demo ----
+// ---- brand & demo ----
+
+// brandEnabled reports whether to show the "by adao.dev" credit in the footer and
+// /api/info. On by default; set PROBE_BRAND=off (or 0/false/no) to remove it — handy
+// for internal/corporate deployments.
+func brandEnabled() bool {
+	switch strings.ToLower(os.Getenv("PROBE_BRAND")) {
+	case "off", "0", "false", "no":
+		return false
+	}
+	return true
+}
+
+type authorInfo struct {
+	Name string `json:"name"`
+	URL  string `json:"url"`
+}
 
 func demoMode() bool {
 	switch strings.ToLower(os.Getenv("PROBE_DEMO")) {

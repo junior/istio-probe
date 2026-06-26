@@ -12,6 +12,12 @@ RUN CGO_ENABLED=0 go build -trimpath \
 
 # --- minimal, non-root runtime ---
 FROM gcr.io/distroless/static-debian12:nonroot
+LABEL org.opencontainers.image.title="istio-probe" \
+      org.opencontainers.image.description="In-cluster diagnostics page to test & validate Istio after an upgrade" \
+      org.opencontainers.image.authors="Adao Oliveira Jr" \
+      org.opencontainers.image.url="https://adao.dev" \
+      org.opencontainers.image.source="https://github.com/junior/istio-probe" \
+      org.opencontainers.image.licenses="MIT"
 COPY --from=build /probe /probe
 USER nonroot:nonroot
 EXPOSE 8080

@@ -92,4 +92,4 @@ git tag v0.1.0 && git push origin v0.1.0
 
 ## License
 
-[MIT](LICENSE).
+[MIT](LICENSE) — built by [Adao Oliveira Jr](https://adao.dev).

@@ -55,6 +55,7 @@
   .tag.strict{color:var(--accent);border-color:var(--accent);background:var(--accent-weak)}
   footer{color:var(--muted);font-size:12px;margin-top:28px;text-align:center}
   footer a{color:var(--accent);text-decoration:none}
+  footer .by{margin-top:6px;font-size:12px;opacity:.75}
 </style>
 </head>
 <body>
@@ -197,6 +198,7 @@
   <footer>
     istio-probe · deploy behind the Istio ingress gateway to verify routing &amp; inventory after an upgrade ·
     <a href="/api/info">/api/info</a> · <a href="/healthz">/healthz</a>
+    {{if .Author}}<div class="by">by <a href="{{.Author.URL}}" rel="noopener" target="_blank">adao.dev</a></div>{{end}}
   </footer>
 </div>
 
